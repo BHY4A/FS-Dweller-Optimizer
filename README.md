@@ -5,6 +5,8 @@ their SPECIAL stats, then hands out the right outfits, weapons and pets.
 
 Fully made by Claude.
 
+Available at: https://bhy4a.github.io/FS-Dweller-Optimizer/
+
 ---
 
 ## Features
