@@ -1,0 +1,21 @@
+/* Icon sizing and colour. Glyph geometry lives in the inline SVG sprite. */
+
+/* icons */
+#iconsprite{position:absolute;width:0;height:0;overflow:hidden;}
+.ic{width:1em;height:1em;display:inline-block;vertical-align:-0.13em;flex:none;
+  fill:none;stroke:currentColor;stroke-width:1.7;
+  stroke-linecap:round;stroke-linejoin:round;overflow:visible;}
+.ic.lg{width:1.15em;height:1.15em;}
+h2 .ic{color:var(--amber);margin-right:2px;}
+h3 .ic{color:var(--green-dim);margin-right:4px;}
+button .ic{margin-right:6px;vertical-align:-0.15em;}
+button.btn.small .ic{margin-right:4px;}
+.diag .dt .ic{margin-right:5px;}
+.mc-icon{color:var(--green-dim);opacity:0.85;margin-right:3px;}
+.map-legend .ic{color:var(--green-dim);}
+.stat-ic{color:var(--amber);margin-right:4px;}
+.dz-title .ic{color:var(--green);margin-right:6px;}
+
+.page-foot{display:flex;justify-content:space-between;align-items:center;gap:10px;
+  flex-wrap:wrap;margin-top:10px;padding-top:8px;border-top:1px solid var(--green-faint);}
+.page-btns{display:flex;gap:6px;flex-wrap:wrap;}

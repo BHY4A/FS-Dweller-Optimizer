@@ -1,0 +1,78 @@
+/* Back-to-top control and every breakpoint. Phones get card-style tables. */
+
+/* back to top */
+#toTop{position:fixed;right:14px;bottom:14px;z-index:30;display:none;
+  background:var(--panel);border:1px solid var(--green);color:var(--green);
+  width:var(--tap);height:var(--tap);font-size:1rem;cursor:pointer;font-family:inherit;
+  touch-action:manipulation;}
+#toTop.show{display:block;}
+
+/* ---------- tablet ---------- */
+@media (max-width:820px){
+  .crt{padding:16px 14px 90px;}
+  .stepnav{margin:0 -14px;padding:7px 14px;}
+  h1{font-size:1.25rem;}
+  h2{font-size:0.95rem;margin-top:26px;}
+  .grid-stats{grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:8px;}
+  .stat-box .value{font-size:1.1rem;}
+  .scroll-hint{display:block;}
+}
+
+/* ---------- phone ---------- */
+@media (max-width:600px){
+  .crt{padding:12px 10px 90px;}
+  .stepnav{margin:0 -10px;padding:6px 10px;}
+  .header-box,.panel{padding:13px 12px;}
+  .dropzone{padding:30px 14px;}
+  h1{font-size:1.12rem;}
+  .badge{display:none;}
+  .boot{font-size:0.68rem;}
+
+  /* every action becomes a full-width tap target */
+  .controls-row{gap:9px;}
+  .controls-row > button.btn{width:100%;}
+  .controls-row > button.btn.small{width:auto;flex:1 1 auto;}
+  .slider-wrap{min-width:100%;}
+
+  /* tables reflow into stacked cards — no horizontal scrolling for data */
+  table.cards thead{display:none;}
+  table.cards,table.cards tbody,table.cards tr,table.cards td{display:block;width:100%;}
+  table.cards tr{border:1px solid var(--border);margin-bottom:8px;padding:4px 0;background:var(--bg2);}
+  table.cards tr:hover td{background:transparent;}
+  table.cards td{border:none;padding:4px 11px;display:flex;justify-content:space-between;gap:12px;
+    text-align:right;}
+  table.cards td::before{content:attr(data-label);color:var(--green-dim);font-size:0.66rem;
+    text-transform:uppercase;letter-spacing:0.5px;text-align:left;flex:none;padding-top:2px;}
+  table.cards td:first-child{border-bottom:1px solid var(--green-faint);margin-bottom:3px;
+    padding-bottom:6px;font-size:0.86rem;}
+  table.cards td[data-label=""]::before{display:none;}
+
+  /* the room table keeps its expandable rows */
+  table.cards tr.detail-row{border:none;margin:0;padding:0;background:transparent;}
+  table.cards tr.detail-row td{padding:0;}
+  table.cards tr.detail-row td::before{display:none;}
+
+  .backup-row{flex-direction:column;align-items:stretch;gap:8px;}
+  .backup-actions{display:grid;grid-template-columns:1fr 1fr 1fr;}
+  .backup-actions .btn{width:100%;}
+
+  .map-toolbar{flex-direction:column;align-items:stretch;gap:8px;}
+  .map-modes{display:grid;grid-template-columns:1fr 1fr 1fr;gap:5px;}
+  .map-modes .btn{width:100%;}
+  .map-grid{--cell:22px;--cellh:46px;}
+  .mc-name{font-size:0.55rem;}
+  .mc-main{font-size:0.82rem;}
+  .mc-sub{font-size:0.53rem;}
+  .map-detail{position:sticky;bottom:0;background:var(--panel);
+    border-top:1px solid var(--border);margin:10px -12px -13px;padding:10px 12px;}
+  .footer-note{font-size:0.68rem;}
+}
+
+@media (max-width:380px){
+  .map-grid{--cell:19px;--cellh:42px;}
+  .backup-actions{grid-template-columns:1fr 1fr;}
+}
+
+@media (prefers-reduced-motion:reduce){
+  *{animation:none !important;transition:none !important;}
+}

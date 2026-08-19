@@ -1,0 +1,39 @@
+/* Vault map grid, cells and legend. */
+
+/* vault map */
+.map-toolbar{display:flex;justify-content:space-between;align-items:center;gap:12px;
+  flex-wrap:wrap;margin-bottom:10px;}
+.map-modes{display:flex;gap:6px;}
+button.btn.mapmode.active{background:var(--green);color:#04140a;}
+.map-zoom{display:flex;gap:6px;align-items:center;}
+.map-legend{display:flex;gap:10px;align-items:center;font-size:0.68rem;color:var(--green-dim);flex-wrap:wrap;}
+.map-legend .lg{display:flex;align-items:center;gap:4px;}
+.map-legend i{width:14px;height:10px;display:inline-block;border:1px solid var(--green-faint);}
+.map-scroll{overflow-x:auto;-webkit-overflow-scrolling:touch;padding-bottom:6px;}
+.map-grid{--cell:26px;--cellh:52px;display:grid;gap:2px;min-width:min-content;}
+/* Cell contents sit on a variable-brightness tint, so contrast cannot come
+   from colour alone — every label carries a shadow that separates it from
+   whatever is underneath. */
+.mapcell > *{text-shadow:var(--on-fill-shadow);}
+.mapcell.inert > *,.mapcell.elev > *{text-shadow:none;}
+.mapcell.inert .mc-name,.mapcell.inert .mc-sub,.mapcell.inert .mc-icon{color:var(--green-dim);}
+
+.mapcell{border:1px solid var(--border);padding:3px 4px;overflow:hidden;cursor:pointer;
+  display:flex;flex-direction:column;justify-content:center;transition:box-shadow .1s ease;
+  touch-action:manipulation;}
+.mapcell:hover{box-shadow:0 0 0 1px var(--green) inset;}
+.mapcell.sel{box-shadow:0 0 0 2px var(--amber) inset;}
+.mapcell.inert{border-style:dashed;border-color:var(--green-faint);cursor:default;opacity:0.55;}
+.mapcell.inert:hover{box-shadow:none;}
+.mapcell.elev{background:repeating-linear-gradient(45deg,transparent,transparent 3px,
+  rgba(74,255,110,0.10) 3px,rgba(74,255,110,0.10) 6px) !important;padding:0;align-items:center;}
+.mapcell.training{border-style:dotted;border-color:var(--amber);}
+.mapcell.broken{outline:1px solid var(--red);}
+.mc-name{font-size:0.62rem;color:var(--on-fill-dim);white-space:nowrap;overflow:hidden;
+  text-overflow:ellipsis;line-height:1.2;}
+.mc-main{font-size:0.95rem;line-height:1.15;color:var(--on-fill);font-weight:700;}
+.mc-letter{font-size:0.58rem;color:var(--amber);margin-left:3px;vertical-align:top;}
+.mc-sub{font-size:0.58rem;color:var(--on-fill-dim);white-space:nowrap;overflow:hidden;line-height:1.2;}
+.mc-elev{font-size:0.6rem;color:var(--green-dim);writing-mode:vertical-rl;}
+.map-detail{border-top:1px solid var(--green-faint);margin-top:10px;padding-top:10px;}
+.scroll-hint{font-size:0.68rem;color:var(--green-dim);margin-top:4px;display:none;}

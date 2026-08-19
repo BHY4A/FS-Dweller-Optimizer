@@ -1,0 +1,83 @@
+/* Palette, page frame, typography and the CRT treatment. */
+
+/* Two themes over one set of variables. The names stay green-flavoured
+   because the whole interface is built around them; in the light theme they
+   simply resolve to dark ink on paper instead of phosphor on black. */
+:root{
+  --bg:#040a04; --bg2:#081208;
+  --green:#4aff6e; --green-dim:#2b8f42; --green-faint:#123018;
+  --amber:#ffb000; --red:#ff5a5a;
+  --panel:#0a160a; --border:#1f5c30;
+
+  /* Text drawn on top of a coloured map cell, where the fill can get bright. */
+  --on-fill:#eaffe9; --on-fill-dim:#bff2c4;
+  --on-fill-shadow:0 1px 2px rgba(0,0,0,0.9), 0 0 3px rgba(0,0,0,0.7);
+  --glow:0 0 8px rgba(74,255,110,0.5);
+  --scan:rgba(0,0,0,0.25);
+  --scan-opacity:0.32;
+  --tint-light:45%;      /* lightness used by the map's stat tints  */
+  --tint-alpha-min:0.18; /* alpha at the bottom of the scale        */
+  --tint-alpha-range:0.42;
+
+  --tap:44px;
+}
+
+:root[data-theme="light"]{
+  --bg:#eef3ea; --bg2:#e2ebdd;
+  --green:#14421f;        /* body text: dark ink   */
+  --green-dim:#4a6b52;    /* secondary text        */
+  --green-faint:#c4d6c2;  /* hairlines             */
+  --amber:#8a5300; --red:#b3261e;
+  --panel:#f7faf4; --border:#9dbba4;
+
+  --on-fill:#0d2a14; --on-fill-dim:#24462c;
+  --on-fill-shadow:0 1px 0 rgba(255,255,255,0.55);
+  --glow:none;
+  --scan:rgba(0,0,0,0.03);
+  --scan-opacity:0.5;
+  --tint-light:42%;
+  --tint-alpha-min:0.14;
+  --tint-alpha-range:0.40;
+}
+*{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%;}
+html,body{margin:0;padding:0;background:var(--bg);color:var(--green);
+  font-family:'Consolas','Menlo','SF Mono','IBM Plex Mono',ui-monospace,monospace;min-height:100vh;}
+/* Long ids and filenames must wrap rather than force the page sideways —
+   this replaces the root overflow clamp, which broke sticky positioning. */
+.small,.flavor,.note,.dz-sub,.backup-meta,td,.diag .dd{overflow-wrap:anywhere;}
+code{overflow-wrap:anywhere;}
+body{background-image:
+  radial-gradient(ellipse at 50% 0%, var(--wash, rgba(74,255,110,0.07)), transparent 60%),
+  repeating-linear-gradient(0deg, var(--scan) 0px, var(--scan) 1px, transparent 1px, transparent 3px);}
+:root[data-theme="light"] body{--wash:rgba(20,66,31,0.05);}
+.crt{max-width:1020px;margin:0 auto;padding:24px 20px 90px;position:relative;}
+.crt::before{content:"";position:fixed;inset:0;pointer-events:none;z-index:5;
+  background:repeating-linear-gradient(0deg, var(--scan) 0px, var(--scan) 1px, transparent 2px, transparent 3px);
+  opacity:var(--scan-opacity);}
+h1,h2,h3{font-weight:700;letter-spacing:0.5px;text-shadow:var(--glow);}
+h1{font-size:1.45rem;margin:0 0 4px;}
+h2{font-size:1.02rem;border-bottom:1px solid var(--border);padding-bottom:8px;margin-top:34px;
+  display:flex;align-items:baseline;gap:10px;flex-wrap:wrap;scroll-margin-top:64px;}
+h3{font-size:0.92rem;margin:0 0 6px;}
+.sub{color:var(--green-dim);font-size:0.78rem;letter-spacing:1.5px;text-transform:uppercase;}
+.header-box{border:1px solid var(--border);padding:16px 18px;background:var(--panel);
+  box-shadow:inset 0 0 24px rgba(74,255,110,0.07);}
+.topline{display:flex;justify-content:space-between;align-items:baseline;flex-wrap:wrap;gap:10px;}
+.badge{border:1px solid var(--border);padding:2px 8px;font-size:0.68rem;color:var(--green-dim);}
+.boot{color:var(--green-dim);font-size:0.76rem;line-height:1.55;white-space:pre-wrap;margin-top:12px;
+  overflow-x:auto;}
+.dropzone{margin-top:18px;border:2px dashed var(--border);background:var(--panel);
+  padding:42px 20px;text-align:center;cursor:pointer;transition:all .15s ease;}
+.dropzone:hover,.dropzone.drag{border-color:var(--green);background:var(--green-faint);
+  box-shadow:inset 0 0 22px rgba(74,255,110,0.14);}
+.dropzone input{display:none}
+.dz-title{font-size:1rem;letter-spacing:1px;}
+.dz-sub{color:var(--green-dim);font-size:0.77rem;margin-top:10px;line-height:1.6;}
+.dz-sub code{font-size:0.72rem;word-break:break-all;}
+.panel{border:1px solid var(--border);background:var(--panel);padding:16px 18px;margin-top:14px;}
+.grid-stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(148px,1fr));gap:10px;margin-top:14px;}
+.stat-box{border:1px solid var(--border);padding:10px 12px;background:var(--bg2);}
+.stat-box .label{font-size:0.66rem;color:var(--green-dim);text-transform:uppercase;letter-spacing:0.5px;}
+.stat-box .value{font-size:1.28rem;margin-top:3px;word-break:break-word;}
+.stat-box .value.amber{color:var(--amber);text-shadow:0 0 8px rgba(255,176,0,0.45);}

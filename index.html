@@ -1,0 +1,365 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="dark">
+<meta name="description" content="Offline optimizer for Fallout Shelter saves: assigns dwellers to the rooms their SPECIAL stats suit, then distributes outfits, weapons and pets.">
+<meta name="theme-color" content="#040a04">
+<title>ROBCO TERMLINK &mdash; Vault Dweller Optimizer</title>
+
+<link rel="icon" href="favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="src/css/base.css">
+<link rel="stylesheet" href="src/css/components.css">
+<link rel="stylesheet" href="src/css/icons.css">
+<link rel="stylesheet" href="src/css/map.css">
+<link rel="stylesheet" href="src/css/responsive.css">
+
+<!-- Vendored locally (MIT): no third-party requests, and the page keeps
+     working with no network at all. -->
+<script src="vendor/crypto-js.js"></script>
+</head>
+<script>
+  // Inline and synchronous on purpose: this must run before the first paint,
+  // otherwise the page flashes dark before switching to the saved theme.
+  try {
+    var t = localStorage.getItem('fsvo_theme');
+    if (t === 'light') document.documentElement.setAttribute('data-theme', 'light');
+  } catch (e) { /* storage blocked — dark theme it is */ }
+</script>
+<body>
+
+<!-- Icon sprite: original geometry, referenced by <use> throughout. -->
+<svg id="iconsprite" width="0" height="0" style="position:absolute" aria-hidden="true" focusable="false">
+<defs>
+<g id="ic-bolt"><path d="M13 2 4 14h6l-1 8 9-12h-6z"/></g>
+<g id="ic-drop"><path d="M12 3c4 5 6 7.5 6 10.5A6 6 0 0 1 6 13.5C6 10.5 8 8 12 3z"/></g>
+<g id="ic-leaf"><path d="M4 20c0-8 5-13 15-14 1 9-4 15-12 15H4z"/><path d="M6 20c2-4 5-7 9-9"/></g>
+<g id="ic-flask"><path d="M9 3h6M10 3v6l-5 9a2 2 0 0 0 2 3h10a2 2 0 0 0 2-3l-5-9V3"/><path d="M7.5 15h9"/></g>
+<g id="ic-cross"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M12 8v8M8 12h8"/></g>
+<g id="ic-radio"><circle cx="12" cy="15" r="3"/><path d="M6.5 10a7 7 0 0 1 11 0M3.5 7a11 11 0 0 1 17 0"/></g>
+<g id="ic-cola"><path d="M8 2h8l-1 4v13a3 3 0 0 1-6 0V6z"/><path d="M8.5 9h7"/></g>
+<g id="ic-pick"><path d="M3 21 12 12"/><path d="M6 9a10 10 0 0 1 12-3 10 10 0 0 1-3 12"/></g>
+<g id="ic-dumbbell"><path d="M3 9v6M6 7v10M18 7v10M21 9v6M6 12h12"/></g>
+<g id="ic-target"><circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3"/></g>
+<g id="ic-heart"><path d="M12 20s-7-4.5-7-9.5A4 4 0 0 1 12 8a4 4 0 0 1 7 2.5C19 15.5 12 20 12 20z"/></g>
+<g id="ic-chat"><path d="M4 5h16v10H9l-5 4z"/><path d="M8 9h8M8 12h5"/></g>
+<g id="ic-book"><path d="M4 4h7a2 2 0 0 1 2 2v14a2 2 0 0 0-2-2H4z"/><path d="M20 4h-7a2 2 0 0 0-2 2v14a2 2 0 0 1 2-2h7z"/></g>
+<g id="ic-run"><circle cx="14" cy="4.5" r="1.8"/><path d="M12 21l2-6-3-3 1-5 4 3 3 1"/><path d="M11 12 7 14l-2 5"/></g>
+<g id="ic-dice"><rect x="3" y="3" width="18" height="18" rx="3"/><circle cx="8.5" cy="8.5" r="1.2"/><circle cx="15.5" cy="15.5" r="1.2"/><circle cx="12" cy="12" r="1.2"/></g>
+<g id="ic-wrench"><path d="M20 5.5a5 5 0 0 1-6.5 6.5L5 20.5 3.5 19l8.5-8.5A5 5 0 0 1 18.5 4z"/></g>
+<g id="ic-box"><path d="M3 7l9-4 9 4-9 4z"/><path d="M3 7v10l9 4 9-4V7"/><path d="M12 11v10"/></g>
+<g id="ic-bed"><path d="M3 18V7M3 12h18v6M3 18h18"/><circle cx="7.5" cy="9.5" r="1.8"/><path d="M11 12V9h7a3 3 0 0 1 3 3"/></g>
+<g id="ic-door"><rect x="5" y="3" width="14" height="18" rx="1"/><circle cx="15" cy="12" r="1.2"/></g>
+<g id="ic-lift"><rect x="5" y="3" width="14" height="18" rx="1"/><path d="M12 8l-2.5 3h5zM12 16l-2.5-3h5z"/></g>
+<g id="ic-scissors"><circle cx="6" cy="6" r="2.2"/><circle cx="6" cy="18" r="2.2"/><path d="M8 7.5 20 18M8 16.5 20 6"/></g>
+<g id="ic-shirt"><path d="M8 3 4 6l2 3 2-1v13h8V8l2 1 2-3-4-3-2 2h-2z"/></g>
+<g id="ic-gun"><path d="M3 8h13l3 3h2v3h-6l-2-2H9l-2 5H4l1-5H3z"/></g>
+<g id="ic-paw"><ellipse cx="7" cy="9" rx="2" ry="2.6"/><ellipse cx="12" cy="6.5" rx="2" ry="2.8"/><ellipse cx="17" cy="9" rx="2" ry="2.6"/><path d="M12 12c3.5 0 6 2.5 6 5a3 3 0 0 1-4.5 2.6 3 3 0 0 0-3 0A3 3 0 0 1 6 17c0-2.5 2.5-5 6-5z"/></g>
+<g id="ic-pair"><path d="M8 15s-4-2.6-4-5.4A2.6 2.6 0 0 1 8 8a2.6 2.6 0 0 1 4 1.6C12 12.4 8 15 8 15z"/><path d="M16 20s-4-2.6-4-5.4A2.6 2.6 0 0 1 16 13a2.6 2.6 0 0 1 4 1.6c0 2.8-4 5.4-4 5.4z"/></g>
+<g id="ic-map"><path d="M3 6l6-3 6 3 6-3v15l-6 3-6-3-6 3z"/><path d="M9 3v15M15 6v15"/></g>
+<g id="ic-download"><path d="M12 3v12"/><path d="M7 11l5 5 5-5"/><path d="M4 20h16"/></g>
+<g id="ic-upload"><path d="M12 20V8"/><path d="M7 12l5-5 5 5"/><path d="M4 4h16"/></g>
+<g id="ic-restore"><path d="M4 12a8 8 0 1 0 2.5-5.8"/><path d="M4 3v5h5"/></g>
+<g id="ic-trash"><path d="M4 6h16"/><path d="M9 6V4h6v2"/><path d="M6 6l1 15h10l1-15"/><path d="M10 10v8M14 10v8"/></g>
+<g id="ic-warn"><path d="M12 3 2 20h20z"/><path d="M12 10v5M12 17.5v.5"/></g>
+<g id="ic-info"><circle cx="12" cy="12" r="9"/><path d="M12 11v6M12 7.5v.5"/></g>
+<g id="ic-chart"><path d="M4 20V4"/><path d="M4 20h16"/><path d="M8 16v-5M13 16V7M18 16v-8"/></g>
+<g id="ic-file"><path d="M6 3h8l4 4v14H6z"/><path d="M14 3v4h4"/><path d="M9 13h6M9 17h6"/></g>
+<g id="ic-plus"><path d="M12 5v14M5 12h14"/></g>
+<g id="ic-minus"><path d="M5 12h14"/></g>
+<g id="ic-fit"><path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"/></g>
+<g id="ic-gear"><circle cx="12" cy="12" r="3.2"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3M5 5l2 2M17 17l2 2M19 5l-2 2M7 17l-2 2"/></g>
+<g id="ic-terminal"><rect x="2.5" y="4" width="19" height="16" rx="2"/><path d="M6 9l3 3-3 3M12 15h5"/></g>
+<g id="ic-sun"><circle cx="12" cy="12" r="4.2"/><path d="M12 2v2.5M12 19.5V22M2 12h2.5M19.5 12H22M4.9 4.9l1.8 1.8M17.3 17.3l1.8 1.8M19.1 4.9l-1.8 1.8M6.7 17.3l-1.8 1.8"/></g>
+<g id="ic-moon"><path d="M20 14.5A8.5 8.5 0 0 1 9.5 4 8.5 8.5 0 1 0 20 14.5z"/></g>
+</defs>
+</svg>
+
+<div class="crt">
+
+  <nav class="stepnav hidden" id="stepnav">
+    <a href="#navTop" data-nav="top">Vault</a>
+    <a href="#navMap" data-nav="map">Map</a>
+    <a href="#navStep1" data-nav="1">1 Rooms</a>
+    <a href="#navStep2" data-nav="2">2 Outfits</a>
+    <a href="#navStep3" data-nav="3">3 Weapons</a>
+    <a href="#navStep4" data-nav="4">4 Pets</a>
+    <a href="#navStep5" data-nav="5">5 Breeding</a>
+    <a href="#navExport" data-nav="export">Export</a>
+  </nav>
+
+  <div class="header-box">
+    <div class="topline">
+      <div>
+        <h1>ROBCO TERMLINK <span class="blink">_</span></h1>
+        <div class="sub">Vault Dweller Assignment Optimizer</div>
+      </div>
+      <div class="header-right">
+        <button class="btn small" id="themeBtn" aria-pressed="false"
+                title="Switch between the dark terminal and a light, high-contrast theme">
+          <svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><use href="#ic-sun"/></svg>
+          <span id="themeLabel">Light</span>
+        </button>
+        <span class="badge">VAULT-TEC UNIFIED OS</span>
+      </div>
+    </div>
+    <div class="boot" id="boot"></div>
+  </div>
+
+  <div id="uploadStage">
+    <div class="dropzone" id="dropzone">
+      <input type="file" id="fileInput" accept=".sav,.json">
+      <div class="dz-title"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><use href="#ic-upload"/></svg> LOAD VAULT*.SAV</div>
+      <div class="dz-sub">
+        Drop your save file here, or click to browse.<br>
+        Android &middot; iOS &middot; PC &middot; Steam &nbsp;|&nbsp; decrypted locally, never uploaded.
+      </div>
+    </div>
+    <div class="controls-row" style="margin-top:14px;">
+      <button class="btn" id="exampleBtn">
+        <svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><use href="#ic-terminal"/></svg>
+        Try an example vault
+      </button>
+      <span class="small" style="flex:1;min-width:200px;">
+        No save file handy? Load a small, deliberately badly-run demo vault and see exactly what each
+        step changes. Nothing on your machine is touched.
+      </span>
+    </div>
+    <div id="uploadStatus" class="small" style="margin-top:10px;"></div>
+    <div id="uploadError" class="error-box hidden"></div>
+    <div class="panel">
+      <div class="flavor">
+        "An Overseer's first duty is efficiency. A dweller in the wrong room is a resource
+        left in the ground." &mdash; Vault-Tec Personnel Handbook, 3rd ed.
+      </div>
+      <div class="small">
+        Where to find your save:<br>
+        &bull; <b>Android</b> &mdash; <code>Android/data/com.bethsoft.falloutshelter/files/Vault1.sav</code><br>
+        &bull; <b>Windows (Steam)</b> &mdash; <code>%USERPROFILE%\Documents\My Games\Fallout Shelter\</code><br>
+        &bull; <b>Windows (Bethesda)</b> &mdash; <code>%LOCALAPPDATA%Low\BethesdaSoftworks\Fallout Shelter\</code><br>
+        &bull; <b>iOS</b> &mdash; via an iTunes/Finder file-share backup of the app<br>
+        Quit the game fully before copying the file out, and keep your own backup of the original.
+        Files ending in <code>.sav.bkp</code> are the game's own recovery backups &mdash; leave those alone.
+      </div>
+      <details class="help">
+        <summary>On Android the folder looks empty &mdash; how do I get the file out?</summary>
+        <div class="small">
+          Since Android 11 apps cannot browse into another app's folder under <code>Android/data</code>,
+          and on Android 13&ndash;14 the built-in file manager is blocked as well. The save is still
+          there; you just need a way in.<br><br>
+          <b>From a PC</b> &mdash; with USB debugging on:<br>
+          <code>adb pull /sdcard/Android/data/com.bethsoft.falloutshelter/files/Vault1.sav</code><br><br>
+          <b>Or on the phone alone, using Shizuku</b> &mdash; it grants apps ADB-level access without
+          root:<br>
+          1. Install <a href="https://shizuku.rikka.app/" target="_blank" rel="noopener">Shizuku</a> and
+          start its service, either through wireless debugging or a one-off ADB command. It needs
+          restarting after every reboot.<br>
+          2. Use a file manager that supports it &mdash; FV File Manager, ZArchiver or MiXplorer &mdash;
+          and switch Shizuku on in its settings.<br>
+          3. Copy <code>Vault1.sav</code> to <code>Downloads</code> and work on that copy, then put the
+          optimised file back under the same name.<br><br>
+          A rooted phone can skip Shizuku and use any root-capable file manager.
+        </div>
+      </details>
+    </div>
+    <div id="backupsPanelEarly"></div>
+  </div>
+
+  <div id="vaultStage" class="hidden">
+    <div class="panel" id="navTop">
+      <div class="topline">
+        <h3 id="vaultTitle" style="margin:0;">VAULT</h3>
+        <button class="btn small" id="unloadBtn"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><use href="#ic-upload"/></svg> LOAD A DIFFERENT FILE</button>
+      </div>
+      <div class="grid-stats" id="vaultSummary"></div>
+    </div>
+
+    <div id="exampleNotice"></div>
+
+    <div class="panel" id="diagPanel"></div>
+
+    <h2 id="navStep1"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><use href="#ic-gear"/></svg> STEP 1 &mdash; ROOM ASSIGNMENTS <span class="step-state" id="st1">not run</span></h2>
+    <div class="panel">
+      <div class="flavor">
+        Every dweller has a talent. The trick is not finding it &mdash; it's not wasting it.
+      </div>
+      <div class="small">
+        Each dweller is matched to the room whose SPECIAL stat they serve best, solved as one optimal
+        assignment problem rather than greedy guesswork. Training rooms compete for the same people using
+        <i>growth headroom</i> instead of current output, so your weakest dwellers go and improve instead
+        of idling in a job they're bad at.
+      </div>
+      <div class="controls-row">
+        <div class="slider-wrap">
+          <label id="trainLabel">Training priority: 0.20</label>
+          <input type="range" id="trainSlider" min="0" max="0.6" step="0.05" value="0.2">
+          <div class="small" style="margin-top:4px;">
+            0.00 = squeeze every drop of production out of today &nbsp;|&nbsp; 0.60 = aggressively raise the next generation
+          </div>
+        </div>
+        <button class="btn" id="optimizeBtn"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><use href="#ic-gear"/></svg> RUN ASSIGNMENT</button>
+        <button class="btn amber" id="runAllBtn"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><use href="#ic-bolt"/></svg> RUN ALL STEPS</button>
+      </div>
+      <div class="small" style="margin-top:10px;">
+        <b>Run assignment</b> does Step 1 only — it works out who should be in which room, and stops
+        there so you can review it.<br>
+        <b>Run all steps</b> does the same and then continues straight through Steps 2&ndash;5 in order:
+        room assignments &rarr; outfits &rarr; weapons &rarr; pets &rarr; breeding suggestions. The order
+        matters, because outfits and pets are fitted to whatever the room plan decided. Nothing is
+        written to disk by either button &mdash; every step just fills in its section below, and your
+        save is only changed when you press <b>Download optimized save</b> at the bottom.
+      </div>
+    </div>
+
+    <div id="resultsStage" class="hidden">
+      <h2><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><use href="#ic-chart"/></svg> VAULT REPORT</h2>
+      <div class="grid-stats" id="resultSummary"></div>
+
+      <h2 id="navMap"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><use href="#ic-map"/></svg> VAULT MAP</h2>
+      <div class="panel">
+        <div class="flavor">
+          The vault, floor by floor, exactly as it is laid out underground.
+        </div>
+        <div class="small">
+          Each room is shaded by the <b>average governing stat</b> of the dwellers inside it &mdash; the number
+          that actually drives its production rate. Switch between the layout you have now, the optimised
+          one, and the difference between them. Dotted amber borders mark training rooms; hatched cells are
+          elevators; dashed grey rooms have no SPECIAL stat and are never touched. Blank space is solid
+          rock &mdash; ground you have not excavated yet, not a gap in the drawing.
+        </div>
+        <div id="mapPanel" style="margin-top:12px;"></div>
+      </div>
+
+      <h2><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><use href="#ic-box"/></svg> ROOM-BY-ROOM <span class="small">(click a row to expand)</span></h2>
+      <div class="filter-row">
+        <input type="text" id="roomFilter" placeholder="filter by room or dweller name...">
+        <button class="btn small" id="expandAllBtn">expand all</button>
+        <button class="btn small" id="collapseAllBtn">collapse all</button>
+        <label class="check"><input type="checkbox" id="onlyChangedRooms"> only rooms that changed</label>
+      </div>
+      <div class="table-scroll">
+        <table>
+          <thead><tr><th>Room</th><th>Stat</th><th>Filled</th><th>&Delta; Output</th></tr></thead>
+          <tbody id="roomTableBody"></tbody>
+        </table>
+      </div>
+      <div id="roomFoot"></div>
+
+      <h2 id="navStep2"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><use href="#ic-shirt"/></svg> STEP 2 &mdash; OUTFITS <span class="step-state" id="st2">not run</span></h2>
+      <div class="panel">
+        <div class="flavor">
+          A lab coat on a reactor tech is a wasted lab coat. Dress for the job you've been assigned.
+        </div>
+        <div class="small">
+          Every worn and stored outfit is pooled and redistributed so each bonus lands on the dweller whose
+          assigned room actually needs that stat. Run Step 1 first &mdash; outfits are fitted to the room plan.
+        </div>
+        <div class="controls-row">
+          <button class="btn" id="outfitsBtn"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><use href="#ic-shirt"/></svg> REDISTRIBUTE OUTFITS</button>
+        </div>
+        <div id="outfitsResult" style="margin-top:10px;"></div>
+      </div>
+
+      <h2 id="navStep3"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><use href="#ic-gun"/></svg> STEP 3 &mdash; WEAPONS <span class="step-state" id="st3">not run</span></h2>
+      <div class="panel">
+        <div class="flavor">
+          Radroaches don't care who's holding the Gauss rifle. Deathclaws do.
+        </div>
+        <div class="small">
+          The best guns go to the best fighters &mdash; provably optimal pairing, since total firepower is the
+          sum of (combat rating &times; weapon damage).<br><br>
+          <b>Combat rating</b> = Strength &times; Agility &times; (1 + 0.05 &times; (Perception + Luck)) &times; (max HP / 100).
+          Strength pushes damage toward the top of the weapon's range, Agility sets attack rate, Perception
+          slows the crit reticle, Luck sets how often crits appear, and max HP &mdash; which the game derives
+          from level and trained Endurance &mdash; decides how long they live to keep swinging.
+        </div>
+        <div class="controls-row">
+          <button class="btn" id="weaponsBtn"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><use href="#ic-gun"/></svg> REDISTRIBUTE WEAPONS</button>
+        </div>
+        <div id="weaponsResult" style="margin-top:10px;"></div>
+      </div>
+
+      <h2 id="navStep4"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><use href="#ic-paw"/></svg> STEP 4 &mdash; PETS <span class="step-state" id="st4">not run</span></h2>
+      <div class="panel">
+        <div class="flavor">
+          Morale is a resource too. So is a dog that finds twice the junk.
+        </div>
+        <div class="small">
+          Pet bonuses are stored in the save itself, so the only question is who benefits most. Training
+          boosts go to someone actually in a training room with stat headroom left, healing to the worst
+          wounded, damage to your best fighter, wasteland finds to whoever is actually out there. A pet with
+          nobody useful to carry it stays in storage rather than being wasted.
+        </div>
+        <div class="controls-row">
+          <button class="btn" id="petsBtn"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><use href="#ic-paw"/></svg> ASSIGN PETS</button>
+        </div>
+        <div id="petsResult" style="margin-top:10px;"></div>
+      </div>
+
+      <h2 id="navStep5"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><use href="#ic-pair"/></svg> STEP 5 &mdash; BREEDING PAIRS <span class="step-state" id="st5">not run</span></h2>
+      <div class="panel">
+        <div class="flavor">
+          The Vault's greatest long-term investment has always been its next generation.
+        </div>
+        <div class="small">
+          A child inherits its highest <i>base</i> stat from one parent at roughly even odds &mdash; outfit
+          bonuses don't count &mdash; and a higher combined parent SPECIAL total raises the chance of a Rare or
+          Legendary child. Charisma speeds up conception.<br><br>
+          Advisory only: this is <b>never written to the save</b>, because pairing in-game also requires
+          physically putting the two dwellers in Living Quarters together.
+        </div>
+        <div class="controls-row">
+          <button class="btn" id="breedingBtn"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><use href="#ic-pair"/></svg> MATCH PAIRS</button>
+        </div>
+        <div id="breedingResult" style="margin-top:10px;"></div>
+      </div>
+
+      <h2 id="navExport"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><use href="#ic-download"/></svg> EXPORT</h2>
+      <div class="panel">
+        <div class="controls-row" style="margin-top:0;">
+          <label class="check">
+            <input type="checkbox" id="renameCheck">
+            Tag dweller names with their new assignment
+          </label>
+          <select id="renameMode">
+            <option value="stat">stat letter &mdash; Ma June [S]</option>
+            <option value="room">room code &mdash; Ma June [PWR]</option>
+            <option value="off">strip existing tags</option>
+          </select>
+        </div>
+        <div class="small" id="renamePreview" style="margin-top:8px;"></div>
+        <div class="note">
+          <b>Keep a copy of your original save.</b> Only rooms with a meaningful SPECIAL stat are rewritten.
+          Living Quarters, Storage, the Vault Door, elevators and the Overseer's Office are left exactly as
+          they were, and dwellers away on quests are never touched. Whichever steps you've run are the ones
+          that get applied.
+        </div>
+        <div class="controls-row">
+          <button class="btn amber" id="downloadBtn"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><use href="#ic-download"/></svg> DOWNLOAD OPTIMIZED SAVE</button>
+          <button class="btn small" id="reportBtn"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><use href="#ic-file"/></svg> CHANGE REPORT</button>
+        </div>
+        <div id="downloadStatus" class="small" style="margin-top:10px;"></div>
+      </div>
+
+      <div id="backupsPanelMain"></div>
+    </div>
+  </div>
+
+  <div class="footer-note">
+    Everything runs locally in your browser &mdash; the save is decrypted, edited and re-encrypted on your
+    machine and is never transmitted anywhere.<br><br>
+    Weapon damage and outfit SPECIAL bonuses are the real values from the game's own data files; two
+    independent extractions were cross-checked and agreed on every overlapping entry. Room-to-stat mapping
+    for training rooms is confirmed the same way. Crafting workshops deliberately use an
+    average-of-all-SPECIAL approximation, because crafting speed depends on which specific recipe is being
+    worked &mdash; something the save file doesn't record. The Barbershop counts Charisma (it speeds up
+    appearance changes) but is <i>not</i> a training room: it doesn't raise the stat itself.<br><br>
+    Not affiliated with Bethesda Softworks. Fallout Shelter is a trademark of Bethesda Softworks LLC.
+  </div>
+</div>
+
+<button id="toTop" title="Back to top" aria-label="Back to top">&#9650;</button>
+<script type="module" src="src/app.js"></script>
+</body>
+</html>
