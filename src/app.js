@@ -5,7 +5,7 @@
 import { WEAPON_AVG_DAMAGE, OUTFIT_BONUS } from './data/items.js';
 import { ROOM_STAT_MAP, STAT_NAMES, STAT_LETTERS } from './data/rooms.js';
 import { decryptSave, encryptSave } from './core/crypto.js';
-import { getQuestDwellers, getInventoryItems, getAllDwellers, getRooms,
+import { getQuestDwellerIds, getInventoryItems, getAllDwellers, getRooms,
          getAssignableDwellers, effectiveStat, baseStat, healthRatio, roomCapacity } from './core/save.js';
 import { optimizeVault, currentProductiveScore, combinedProductiveScore } from './optimize/rooms.js';
 import { optimizeWeapons, combatScore, isWeaponScoreExact } from './optimize/weapons.js';
@@ -318,7 +318,7 @@ function statBox(label, value, amber) {
 function showVault() {
   $('vaultTitle').textContent = 'VAULT ' + (SAVE.vault.VaultName || '???');
   const dwellers = getAssignableDwellers(SAVE);
-  const away = getQuestDwellers(SAVE).length;
+  const away = getQuestDwellerIds(SAVE).size;
   const staffable = getRooms(SAVE).filter(r => ROOM_STAT_MAP[r.type]).length;
   const s = $('vaultSummary'); s.innerHTML = '';
   addStat(s, 'Dwellers', dwellers.length + (away ? ' (+' + away + ' away)' : ''));

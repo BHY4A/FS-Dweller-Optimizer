@@ -12,8 +12,36 @@ export function getQuestDwellers(save) {
   return (save && save.questDwellers && Array.isArray(save.questDwellers.dwellers))
     ? save.questDwellers.dwellers : [];
 }
+
+// Is a quest actually running right now?
+//
+// The save keeps the last quest team in `questDwellers` even after the quest
+// has finished, so that list on its own says nothing about where anyone is.
+// `questDataManager` carries the outcome flags, and a finished or cancelled
+// quest means the team is back home.
+export function isQuestActive(save) {
+  const q = save && save.questDataManager;
+  if (!q) return false;
+  if (q.questDone === true || q.cancelled === true) return false;
+  // No outcome recorded yet, but a team is listed: treat that as in progress.
+  return getQuestDwellers(save).length > 0;
+}
+
+// Dwellers that are genuinely elsewhere and must not be touched.
+//
+// Two independent signals, because either alone gets it wrong:
+//   * someone away is normally lifted out of the vault roster entirely, so
+//     anyone in `questDwellers` but absent from `dwellers` is definitely away;
+//   * someone listed in both is only away while the quest is still running —
+//     otherwise it is a stale record of a team that already came back.
 export function getQuestDwellerIds(save) {
-  return new Set(getQuestDwellers(save).map(d => d.serializeId));
+  const roster = new Set(getAllDwellers(save).map(d => d.serializeId));
+  const active = isQuestActive(save);
+  const away = new Set();
+  getQuestDwellers(save).forEach(d => {
+    if (!roster.has(d.serializeId) || active) away.add(d.serializeId);
+  });
+  return away;
 }
 export function getInventoryItems(save) {
   return (save && save.vault && save.vault.inventory && Array.isArray(save.vault.inventory.items))

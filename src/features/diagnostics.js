@@ -1,7 +1,7 @@
 // Read-only vault health checks.
 
 import { ROOM_STAT_MAP } from '../data/rooms.js';
-import { getRooms, getAssignableDwellers, getInventoryItems, getQuestDwellers, healthRatio } from '../core/save.js';
+import { getRooms, getAssignableDwellers, getInventoryItems, getQuestDwellerIds, healthRatio } from '../core/save.js';
 
 // ============================================================
 // VAULT DIAGNOSTICS
@@ -71,7 +71,9 @@ export function diagnoseVault(save) {
     });
   }
 
-  const away = getQuestDwellers(save).length;
+  // Only count people who are genuinely elsewhere: the save keeps the last
+  // quest team on file after the quest ends.
+  const away = getQuestDwellerIds(save).size;
   if (away) {
     findings.push({
       level: 'info', title: away + ' dweller(s) away on a quest',

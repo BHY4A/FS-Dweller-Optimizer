@@ -148,6 +148,64 @@ console.log('\n=== 4. The algorithms still produce the right answers ===');
   }
 }
 
+console.log('\n=== 4a. Who counts as away on a quest ===');
+{
+  const { decryptSave } = await import(path.join(SRC, 'core/crypto.js'));
+  const { getQuestDwellerIds, isQuestActive, getAssignableDwellers, getAllDwellers } =
+    await import(path.join(SRC, 'core/save.js'));
+
+  const realPath = '/mnt/user-data/uploads/Vault1.sav';
+  if (!fs.existsSync(realPath)) {
+    ok(true, '(skipped — no sample save available)');
+  } else {
+    const base = decryptSave(fs.readFileSync(realPath, 'utf8'));
+    const clone = () => JSON.parse(JSON.stringify(base));
+    const team = base.questDwellers.dwellers.map(d => d.serializeId);
+
+    // The save keeps the last quest team on file after the quest ends, so the
+    // list alone must not be read as "these people are away".
+    ok(team.length > 0, 'sample save carries a finished quest team (' + team.join(', ') + ')');
+    ok(base.questDataManager.questDone === true, 'and that quest is marked done');
+    ok(isQuestActive(base) === false, 'a completed quest is not treated as active');
+    ok(getQuestDwellerIds(base).size === 0, 'nobody is held back once the quest is over');
+    const assignable = getAssignableDwellers(base).map(d => d.serializeId);
+    ok(team.every(id => assignable.includes(id)), 'the returned team is optimised like everyone else');
+    ok(assignable.length === getAllDwellers(base).filter(d => d.deathTime === -1).length,
+       'every living dweller is assignable (' + assignable.length + ')');
+
+    // A quest that is genuinely running must still protect its team.
+    const running = clone();
+    running.questDataManager.questDone = false;
+    running.questDataManager.questSucceeded = false;
+    ok(isQuestActive(running) === true, 'an unfinished quest is active');
+    ok(getQuestDwellerIds(running).size === team.length, 'its team is held back');
+    const runAssignable = getAssignableDwellers(running).map(d => d.serializeId);
+    ok(team.every(id => !runAssignable.includes(id)), 'and excluded from optimisation');
+
+    // Cancelled counts as over.
+    const cancelled = clone();
+    cancelled.questDataManager.questDone = false;
+    cancelled.questDataManager.cancelled = true;
+    ok(isQuestActive(cancelled) === false, 'a cancelled quest is not active');
+    ok(getQuestDwellerIds(cancelled).size === 0, 'its team is released');
+
+    // The other signal: someone lifted out of the vault roster is away
+    // regardless of the flags.
+    const absent = clone();
+    absent.questDataManager.questDone = true;
+    absent.dwellers.dwellers = absent.dwellers.dwellers.filter(d => !team.includes(d.serializeId));
+    ok(getQuestDwellerIds(absent).size === team.length,
+       'anyone missing from the roster stays protected even with the quest marked done');
+
+    // Missing quest structures must not throw.
+    const bare = clone();
+    delete bare.questDataManager;
+    bare.questDwellers = { dwellers: [] };
+    ok(isQuestActive(bare) === false && getQuestDwellerIds(bare).size === 0,
+       'a save with no quest data is handled cleanly');
+  }
+}
+
 console.log('\n=== 4b. Vault map geometry ===');
 {
   const { makeExampleSave } = await import(path.join(SRC, 'features/example.js'));
